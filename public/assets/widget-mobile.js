@@ -21,6 +21,7 @@ export class Wid {
 
         let socket;
         let reconnectAttempts = 0;
+        let errorEvent;
         const MAX_RECONNECT_ATTEMPTS = 2;
         let userName = "";
 
@@ -51,7 +52,8 @@ export class Wid {
 
 
         function tryToConnect() {
-            socket = new WebSocket("ws://localhost:3000");
+            errorEvent = null;
+            socket = new WebSocket("wss://adjusted-panda-promoted.ngrok-free.app"); //ws://localhost:3000
             socket.onopen = onSocketOpen;
             socket.onmessage = onSocketMessage;
             socket.onclose = onSocketClose;
@@ -66,6 +68,7 @@ export class Wid {
 
         function onSocketMessage(event) {
             const message = JSON.parse(event.data);
+            console.log(message);
             acceptMessage(message);
             try {
                 if (message.actionOnMessage) {
@@ -77,23 +80,15 @@ export class Wid {
         }
 
         function onSocketError(event) {
+            errorEvent = event;
             console.log('Ошибка соединения');
-            socket.close();
-        }
-
-        function onSocketClose(event) {
-            console.log(`Код закрытия: ${event.code}`);
             document.querySelector(".wrap_a482").style.display = "none";
-            if (event.reason === "closed by user" || event.reason === "many clients" || event.reason === "non-working hours" || event.reason === "timeout") {
-                messages.appendChild(startDialogue);
-                startDialogue.style.setProperty('display', 'block');
-                messages.scrollIntoView({ behavior: "smooth", block: "end" });
-            } else if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
-                console.log(`Соединение закрыто. Попытка повторного подключения ${reconnectAttempts + 1}`);
+            if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+                console.log(`Ошибка соединения. Попытка повторного подключения ${reconnectAttempts + 1}`);
                 setTimeout(() => tryToConnect(), 2000); // повторное подключение через 2 секунды
                 reconnectAttempts++;
             } else {
-                console.log('Соединение закрыто. Слишком много попыток соединения. Соединение невозможно, попробуйте позже');
+                console.log('Ошибка соединения. Слишком много попыток соединения. Соединение невозможно, попробуйте позже');
                 acceptMessage(
                     new Message("serverMessage", "Сервер не отвечает. Соединение невозможно, попробуйте начать новый диалог позже.",)
                 );
@@ -103,6 +98,34 @@ export class Wid {
                     startDialogue.style.setProperty('display', 'block');
                     messages.scrollIntoView({ behavior: "smooth", block: "end" });
                 }, 2000);
+            }
+
+        }
+
+        function onSocketClose(event) {
+            if (!errorEvent) {
+                console.log(`Код закрытия: ${event.code}`);
+                document.querySelector(".wrap_a482").style.display = "none";
+                if (event.reason === "closed by user" || event.reason === "many clients" || event.reason === "non-working hours" || event.reason === "timeout") {
+                    messages.appendChild(startDialogue);
+                    startDialogue.style.setProperty('display', 'block');
+                    messages.scrollIntoView({ behavior: "smooth", block: "end" });
+                } else if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+                    console.log(`Соединение закрыто. Попытка повторного подключения ${reconnectAttempts + 1}`);
+                    setTimeout(() => tryToConnect(), 2000); // повторное подключение через 2 секунды
+                    reconnectAttempts++;
+                } else {
+                    console.log('Соединение закрыто. Слишком много попыток соединения. Соединение невозможно, попробуйте позже');
+                    acceptMessage(
+                        new Message("serverMessage", "Сервер не отвечает. Соединение невозможно, попробуйте начать новый диалог позже.",)
+                    );
+                    setTimeout(() => {
+                        //reconnectAttempts = 0;
+                        messages.appendChild(startDialogue);
+                        startDialogue.style.setProperty('display', 'block');
+                        messages.scrollIntoView({ behavior: "smooth", block: "end" });
+                    }, 2000);
+                }
             }
         }
 

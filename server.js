@@ -56,6 +56,7 @@ class Message {
 
 // отправка сообщений от пользователя viber через бота клиенту 
 bot.on(BotEvents.MESSAGE_RECEIVED, (messageViberInput, response) => {
+  console.log(response.userProfile);
   if (response.userProfile.id === userViber.id && activeWsClient === previousActiveWsClient && activeWsClient) {
     let messageOutput = new Message("userMessage", messageViberInput.text, response.userProfile.name);
     messageOutput.userAvatar = response.userProfile.avatar;
