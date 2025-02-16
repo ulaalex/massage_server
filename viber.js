@@ -94,21 +94,17 @@ function onConnect(wsClient, req) {
             wsClient.send(messageOutputJson);
         }
 
+
         // логика обработки очереди клиентов
         if (clients.length == 1) {
             activeWsClient = wsClient;
             //console.log('Active client with id ' + colors.yellow(`${id}`) + ' connected');
-            // отправка первого сообщения текущему клиенту    
-            let messageOutput = new Message("userMessage", `Здравствуйте, я ${userViber.name}. Чем могу помочь?`, `${userViber.name}`, "addMessagesStandart");
-            messageOutput.userAvatar = userViber.avatar;
-            let messageOutputJson = JSON.stringify(messageOutput);
-            activeWsClient.send(messageOutputJson);
+            
+            // инициализация события отключения текущего клиента и назначение текущим клиентом следующего в очереди
+            initializeCloseActiveClient(activeWsClient);
 
-            // установка текущему клиенту обработчика события отключения и назначение текущим клиентом следующего в очереди
-            onCloseClient(activeWsClient);
-
-            // установка текущему клиенту обработчика события поступления нового сообщения и отправка их пользователю viber
-            onMessage(activeWsClient);
+            // инициализация работы чата
+            initializeWorkChat(activeWsClient);
 
         }
 
@@ -116,7 +112,7 @@ function onConnect(wsClient, req) {
 }
 
 // объявление функции - установка клиенту обработчика события поступления нового сообщения и отправка их пользователю viber
-function onMessage(client) {
+function initializeWorkChat(client) {
     clearTimeout(timerActiveWsClient);
     timerActiveWsClient = setTimeout(() => {
         let messageOutput = new Message("serverMessage", "Время ожидания вышло. Ваш чат был отключен. Вы можете при необходимости подключиться снова.");
@@ -124,6 +120,12 @@ function onMessage(client) {
         client.send(messageOutputJson);
         client.close(1000, "timeout");
     }, 180000);
+
+    // отправка первого сообщения текущему клиенту    
+    let messageOutput = new Message("userMessage", `Здравствуйте, я ${userViber.name}. Чем могу помочь?`, `${userViber.name}`, "addMessagesStandart");
+    messageOutput.userAvatar = userViber.avatar;
+    let messageOutputJson = JSON.stringify(messageOutput);
+    client.send(messageOutputJson);
 
     // отправка уведомления пользователю viber о подключении нового текущего клиента
     bot.sendMessage(userViber, new TextMessage("Подключился новый клиент"))
@@ -156,7 +158,7 @@ function onMessage(client) {
 }
 
 // объявление функции - установка клиенту обработчика события отключения и назначение текущим клиентом следующего в очереди
-function onCloseClient(client) {
+function initializeCloseActiveClient(client) {
     client.on('close', function () {
 
         // отправка уведомления пользователю viber об отключении текущего клиента
@@ -166,16 +168,11 @@ function onCloseClient(client) {
         // назначение текущим клиентом следующего в очереди при наличии
         if (clients.length > 0) {
             activeWsClient = clients[0];
-            // отправка первого сообщения текущему клиенту
-            let messageOutput = new Message("userMessage", `Здравствуйте, я ${userViber.name}. Чем могу помочь?`, `${userViber.name}`, "addMessagesStandart");
-            messageOutput.userAvatar = userViber.avatar;
-            let messageOutputJson = JSON.stringify(messageOutput);
-            activeWsClient.send(messageOutputJson);
 
-            // установка текущему клиенту обработчика события отключения и назначение текущим клиентом следующего в очереди
-            onCloseClient(activeWsClient);
-            // установка текущему клиенту обработчика события поступления нового сообщения и отправка их пользователю viber
-            onMessage(activeWsClient);
+            // инициализация события отключения текущего клиента и назначение текущим клиентом следующего в очереди
+            initializeCloseActiveClient(activeWsClient);
+            // инициализация работы чата
+            initializeWorkChat(activeWsClient);
 
         } else {
             activeWsClient = null;
