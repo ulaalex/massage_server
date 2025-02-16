@@ -6,7 +6,7 @@ export class Wid {
         // window.addEventListener('load', function () {
 
 
-
+        const urlWebSocket = `${(window.location.protocol === "https:") ? "wss://" : "ws://"}${window.location.host}`; //ws://localhost:3000
 
         const messages = document.getElementById('messages');
         const sendButton = document.getElementById('sendButton');
@@ -53,7 +53,7 @@ export class Wid {
 
         function tryToConnect() {
             errorEvent = null;
-            socket = new WebSocket("wss://adjusted-panda-promoted.ngrok-free.app"); //ws://localhost:3000
+            socket = new WebSocket(urlWebSocket);
             socket.onopen = onSocketOpen;
             socket.onmessage = onSocketMessage;
             socket.onclose = onSocketClose;

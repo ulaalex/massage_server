@@ -5,11 +5,12 @@ const http = require('http');
 const path = require('path');
 
 const WebSocket = require('ws');
-const jsonParser = express.json();
-const prompt = require('prompt');
 const colors = require("@colors/colors/safe");
 const process = require("node:process");
 require('dotenv').config();
+
+//подключение модуля Instagram
+const instagram = require("./instagram.js");
 
 //viber
 const ngrok = require('./get_public_url');
@@ -56,7 +57,6 @@ class Message {
 
 // отправка сообщений от пользователя viber через бота клиенту 
 bot.on(BotEvents.MESSAGE_RECEIVED, (messageViberInput, response) => {
-  console.log(response.userProfile);
   if (response.userProfile.id === userViber.id && activeWsClient === previousActiveWsClient && activeWsClient) {
     let messageOutput = new Message("userMessage", messageViberInput.text, response.userProfile.name);
     messageOutput.userAvatar = response.userProfile.avatar;
@@ -237,10 +237,24 @@ app.use(express.static(path.join(__dirname, "public")));
 let renderIndex = function (req, res) {
   res.sendFile(path.resolve(__dirname, 'public/index.html'));
 };
+
+
+
+app.get('/api/instagram/getDataInstagram', function (req, res) {
+
+  instagram.getDataInstagram()
+    .then(result => {
+      res.send(result.data);
+    })
+    .catch(error => {
+      console.error(error);
+      res.status(404).send('Sorry, cant find that.');
+    });
+});
+
 app.get('/*', renderIndex);
 
 app.use(bot.middleware());
-
 
 const port = process.env.PORT || 3000;
 return ngrok.getPublicUrl().then(publicUrl => {
